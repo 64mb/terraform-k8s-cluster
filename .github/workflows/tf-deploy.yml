@@ -1,0 +1,19 @@
+name: terraform deploy
+
+on:
+  push:
+    branches: ['master']
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: hashicorp/setup-terraform@v2
+      - run: echo "${{ secrets.TERRAFORM_SA }}" | base64 -d  > .terraform.sa.json
+      - run: echo "${{ secrets.TERRAFORM_SA_STATIC }}" | base64 -d  > .terraform.sa.static.json
+      - run: |
+          jq -r '.' > .terraform.config.json << EOF
+          ${{ vars.TERRAFORM_CONFIG }}
+          EOF
+      - run: make deploy
