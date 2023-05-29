@@ -1,0 +1,7 @@
+{
+  "provider_endpoint": "api.cloud.yandex.net:443",
+  "storage_endpoint": "storage.yandexcloud.net",
+  "bucket": "...",
+  "static_access_key": "...",
+  "static_secret_key": "..."
+}

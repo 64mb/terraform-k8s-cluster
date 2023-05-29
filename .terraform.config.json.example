@@ -1,0 +1,10 @@
+{
+  "cloud_id": "...",
+  "folder_id": "...",
+  "network_id": "...",
+  "key": "k8s.tfstate",
+  "domain": "ingress.domain",
+  "k8s_node_user": "k8s_node_user",
+  "k8s_version": "1.24",
+  "allowed_ip": "127.0.0.1,127.0.0.1"
+}

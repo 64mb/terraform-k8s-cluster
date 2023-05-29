@@ -1,0 +1,9 @@
+.terraform/
+
+.terraform.lock.hcl
+.terraform.sa.json
+.terraform.sa.static.json
+.terraform.config.json
+
+.terraform.kubeconfig
+.tf.kubeconfig
