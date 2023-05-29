@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: haythem/public-ip@v1.3
-      - run: ${{ steps.ip.outputs.ipv4 }}
+        id: ip
       - uses: hashicorp/setup-terraform@v2
       - run: echo "${{ secrets.TERRAFORM_SA }}" | base64 -d  > .terraform.sa.json
       - run: echo "${{ secrets.TERRAFORM_SA_STATIC }}" | base64 -d  > .terraform.sa.static.json
