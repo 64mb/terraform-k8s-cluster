@@ -18,4 +18,5 @@ jobs:
           jq -r '.+{allowed_ip:"\(.allowed_ip),${{ steps.ip.outputs.ipv4 }}"}' > .terraform.config.json << EOF
           ${{ vars.TERRAFORM_CONFIG }}
           EOF
+      - run: make deploy-only-sg
       - run: make deploy
