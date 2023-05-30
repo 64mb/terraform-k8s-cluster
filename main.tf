@@ -85,9 +85,9 @@ module "k8s_sg" {
       { cidr_v4 = yandex_vpc_subnet.k8s_subnet.v4_cidr_blocks, from_port = 0, to_port = 65535, proto = "ANY" },
       { cidr_v4 = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"], from_port = 0, to_port = 65535, proto = "ICMP" },
       { cidr_v4 = ["0.0.0.0/0"], from_port = 30000, to_port = 32767, proto = "TCP" },
-      { cidr_v4 = [local.ip_cidr], port = 22, proto = "TCP" },
-      { cidr_v4 = [local.ip_cidr], port = 443, proto = "TCP" },
-      { cidr_v4 = [local.ip_cidr], port = 6443, proto = "TCP" },
+      { cidr_v4 = local.allowed_ip, port = 22, proto = "TCP" },
+      { cidr_v4 = local.allowed_ip, port = 443, proto = "TCP" },
+      { cidr_v4 = local.allowed_ip, port = 6443, proto = "TCP" },
     ]
     egress = [
       { cidr_v4 = ["0.0.0.0/0"], from_port = 0, to_port = 65535, proto = "ANY" },
