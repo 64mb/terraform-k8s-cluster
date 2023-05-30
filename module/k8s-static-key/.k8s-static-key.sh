@@ -27,7 +27,7 @@ if [ -z "${OLD_PROFILE}" ]; then
   OLD_PROFILE="temp"
 fi
 
-yc config profile create "${PROFILE_NAME}"
+yc config profile create "${PROFILE_NAME}" &>/dev/null || exit 1
 
 yc config set cloud-id ${CLOUD_ID} &>/dev/null || exit 1
 yc config set folder-id ${FOLDER_ID} &>/dev/null || exit 1
@@ -37,7 +37,7 @@ K8S_NAMESPACE="kube-system"
 K8S_ADMIN_USER="admin-user"
 
 rm -rf ${KUBE_CONFIG_FILE}
-yc managed-kubernetes cluster get-credentials ${K8S_CLUSTER_ID} --external --profile default --kubeconfig ${KUBE_CONFIG_FILE} &>/dev/null || exit 1
+yc managed-kubernetes cluster get-credentials ${K8S_CLUSTER_ID} --external --profile ${PROFILE_NAME} --kubeconfig ${KUBE_CONFIG_FILE} &>/dev/null || exit 1
 
 kubectl get serviceAccount ${K8S_ADMIN_USER} --kubeconfig ${KUBE_CONFIG_FILE} --namespace ${K8S_NAMESPACE} &>/dev/null ||
   kubectl create -f "${TF_MODULE_FOLDER}/.k8s-sa.yaml" --kubeconfig ${KUBE_CONFIG_FILE} &>/dev/null || exit 1
