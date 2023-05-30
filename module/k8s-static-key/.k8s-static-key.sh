@@ -22,6 +22,8 @@ trap clear EXIT
 
 OLD_PROFILE=$(yc config profile list | grep -v "${PROFILE_PREFIX}" | grep ACTIVE | sed 's/ ACTIVE//')
 
+echo 123
+
 if [ -z "${OLD_PROFILE}" ]; then
   yc config profile create temp &>/dev/null
   OLD_PROFILE="temp"
