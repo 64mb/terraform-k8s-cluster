@@ -25,8 +25,10 @@ data "http" "ip" {
 }
 
 locals {
-  ip      = chomp(data.http.ip.response_body)
-  ip_cidr = "${chomp(data.http.ip.response_body)}/32"
+  ip          = chomp(data.http.ip.response_body)
+  ip_cidr     = "${chomp(data.http.ip.response_body)}/32"
+  _allowed_ip = data.external.config_json.result.allowed_ip
+  allowed_ip  = concat([for ip in split(",", local._allowed_ip) : "${ip}/32"], [local.ip_cidr])
 }
 
 resource "tls_private_key" "ssh_key" {
