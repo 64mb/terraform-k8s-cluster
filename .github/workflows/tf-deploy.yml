@@ -18,6 +18,6 @@ jobs:
           jq -r '.' > .terraform.config.json << EOF
           ${{ vars.TERRAFORM_CONFIG }}
           EOF
-      - run: yc config list
+      - run: module/k8s-static-key/.k8s-static-key.sh
       - run: make deploy-only-sg
       - run: make deploy
