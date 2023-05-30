@@ -12,7 +12,8 @@ jobs:
       - uses: haythem/public-ip@v1.3
         id: ip
       - uses: hashicorp/setup-terraform@v2
-      - run: curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash && source "/home/runner/.bashrc"
+      - run: curl https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -i /opt/yandex-cloud -n
+      - run: ln -s /opt/yandex-cloud/bin/yc /usr/local/bin/yc
       - run: echo "${{ secrets.TERRAFORM_SA }}" | base64 -d  > .terraform.sa.json
       - run: echo "${{ secrets.TERRAFORM_SA_STATIC }}" | base64 -d  > .terraform.sa.static.json
       - run: |
