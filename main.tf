@@ -112,7 +112,7 @@ resource "yandex_kubernetes_cluster" "k8s_cluster" {
     security_group_ids = [module.k8s_sg.id]
 
     maintenance_policy {
-      auto_upgrade = false
+      auto_upgrade = true
     }
 
     master_logging {
@@ -203,7 +203,7 @@ resource "yandex_kubernetes_node_group" "k8s_node_group" {
   }
 
   maintenance_policy {
-    auto_upgrade = false
+    auto_upgrade = true
     auto_repair  = true
   }
 }
@@ -239,10 +239,19 @@ resource "yandex_lockbox_secret_version" "k8s_admin_token_version" {
 
 locals {
   k8s_cluster_endpoint       = yandex_kubernetes_cluster.k8s_cluster.master[0].external_v4_endpoint
+  k8s_cluster_ip_v4          = replace(local.k8s_cluster_endpoint, "https://", "")
   k8s_cluster_ca_certificate = yandex_kubernetes_cluster.k8s_cluster.master[0].cluster_ca_certificate
 
   k8s_lockbox_entries = yandex_lockbox_secret_version.k8s_admin_token_version.entries
   k8s_token           = local.k8s_lockbox_entries[index(local.k8s_lockbox_entries.*.key, "token")].text_value
+}
+
+resource "yandex_dns_recordset" "k8s_dns_k8s_record" {
+  zone_id = local.dns_zone_id
+  name    = "k8s.${local.dns_zone}"
+  type    = "A"
+  data    = [local.k8s_cluster_ip_v4]
+  ttl     = 600
 }
 
 resource "helm_release" "helm_external_secrets" {
@@ -347,11 +356,13 @@ resource "yandex_resourcemanager_folder_iam_member" "k8s_sa_alb_ingress_role_vpc
   role      = "vpc.publicAdmin"
   member    = "serviceAccount:${yandex_iam_service_account.k8s_sa_alb_ingress.id}"
 }
+
 resource "yandex_resourcemanager_folder_iam_member" "k8s_sa_alb_ingress_role_certificate_manager" {
   folder_id = local.folder_id
   role      = "certificate-manager.certificates.downloader"
   member    = "serviceAccount:${yandex_iam_service_account.k8s_sa_alb_ingress.id}"
 }
+
 resource "yandex_resourcemanager_folder_iam_member" "k8s_sa_alb_ingress_role_compute_viewer" {
   folder_id = local.folder_id
   role      = "compute.viewer"
@@ -401,3 +412,89 @@ resource "helm_release" "helm_argo_cd" {
     local.k8s_token,
   ]
 }
+
+data "yandex_dns_zone" "k8s_dns_zone" {
+  dns_zone_id = local.dns_zone_id
+}
+
+locals {
+  k8s_ingress_group = "k8s-service-alb"
+  dns_zone          = data.yandex_dns_zone.k8s_dns_zone.zone
+  domain            = trim(local.dns_zone, ".")
+  domain_argo_cd    = "argo-cd.${local.domain}"
+  ip_v4_address     = yandex_vpc_address.k8s_alb_ingress_ip.external_ipv4_address[0].address
+}
+
+resource "yandex_vpc_address" "k8s_alb_ingress_ip" {
+  name = "k8s-alb-ingress-ip"
+
+  external_ipv4_address {
+    zone_id = "ru-central1-a"
+  }
+}
+
+resource "yandex_cm_certificate" "k8s_argo_cd_cert" {
+  name    = "k8s-cert-argo-cd"
+  domains = [local.domain_argo_cd]
+
+  managed {
+    challenge_type  = "DNS_CNAME"
+    challenge_count = 1
+  }
+}
+
+resource "yandex_dns_recordset" "k8s_cert_dns_challenge" {
+  count   = yandex_cm_certificate.k8s_argo_cd_cert.managed[0].challenge_count
+  zone_id = local.dns_zone_id
+  name    = yandex_cm_certificate.k8s_argo_cd_cert.challenges[count.index].dns_name
+  type    = yandex_cm_certificate.k8s_argo_cd_cert.challenges[count.index].dns_type
+  data    = [yandex_cm_certificate.k8s_argo_cd_cert.challenges[count.index].dns_value]
+  ttl     = 600
+}
+
+resource "yandex_dns_recordset" "k8s_dns_argo_cd_record" {
+  zone_id = local.dns_zone_id
+  name    = "argo-cd.${local.dns_zone}"
+  type    = "A"
+  data    = [local.ip_v4_address]
+  ttl     = 600
+}
+
+resource "kubernetes_ingress_v1" "k8s_ingress" {
+  metadata {
+    name = "k8s-ingress"
+    annotations = {
+      "ingress.alb.yc.io/subnets"               = yandex_vpc_subnet.k8s_subnet.id
+      "ingress.alb.yc.io/security-groups"       = module.k8s_sg.id
+      "ingress.alb.yc.io/external-ipv4-address" = local.ip_v4_address
+      "ingress.alb.yc.io/group-name"            = local.k8s_ingress_group
+      # "ingress.alb.yc.io/transport-security"    = "tls"
+    }
+  }
+
+  spec {
+    tls {
+      hosts       = [local.domain_argo_cd]
+      secret_name = "yc-certmgr-cert-id-${yandex_cm_certificate.k8s_argo_cd_cert.id}"
+    }
+
+    rule {
+      host = local.domain_argo_cd
+      http {
+        path {
+          backend {
+            service {
+              name = "ci-argocd-server"
+              port {
+                name = "https"
+              }
+            }
+          }
+
+          path = "/"
+        }
+      }
+    }
+  }
+}
+
