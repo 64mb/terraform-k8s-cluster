@@ -53,6 +53,6 @@ locals {
   folder_id  = data.external.config_json.result.folder_id
   network_id = data.external.config_json.result.network_id
 
-  domain = data.external.config_json.result.domain
+  dns_zone_id = data.external.config_json.result.dns_zone_id
 }
 
