@@ -84,7 +84,7 @@ module "k8s_sg" {
       { target = "self_security_group", from_port = 0, to_port = 65535, proto = "ANY" },
       { cidr_v4 = yandex_vpc_subnet.k8s_subnet.v4_cidr_blocks, from_port = 0, to_port = 65535, proto = "ANY" },
       { cidr_v4 = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"], from_port = 0, to_port = 65535, proto = "ICMP" },
-      { cidr_v4 = ["0.0.0.0/0"], from_port = 30000, to_port = 32767, proto = "TCP" },
+      { cidr_v4 = local.allowed_ip, from_port = 30000, to_port = 32767, proto = "TCP" },
       { cidr_v4 = local.allowed_ip, port = 22, proto = "TCP" },
       { cidr_v4 = local.allowed_ip, port = 443, proto = "TCP" },
       { cidr_v4 = local.allowed_ip, port = 6443, proto = "TCP" },
@@ -460,15 +460,42 @@ resource "yandex_dns_recordset" "k8s_dns_argo_cd_record" {
   ttl     = 600
 }
 
+resource "kubernetes_service" "k8s_argo_cd_service" {
+  metadata {
+    name      = "argo-cd-np"
+    namespace = "argo-cd"
+  }
+  spec {
+    selector = {
+      "app.kubernetes.io/instance" = "ci"
+      "app.kubernetes.io/name"     = "argocd-server"
+    }
+    # session_affinity = "ClientIP"
+    port {
+      name        = "https"
+      port        = 443
+      target_port = "server"
+      protocol    = "TCP"
+    }
+    type = "NodePort"
+  }
+
+  depends_on = [
+    local.k8s_token,
+  ]
+}
+
+
 resource "kubernetes_ingress_v1" "k8s_ingress" {
   metadata {
-    name = "k8s-ingress"
+    name      = "k8s-ingress"
+    namespace = "argo-cd"
     annotations = {
       "ingress.alb.yc.io/subnets"               = yandex_vpc_subnet.k8s_subnet.id
       "ingress.alb.yc.io/security-groups"       = module.k8s_sg.id
       "ingress.alb.yc.io/external-ipv4-address" = local.ip_v4_address
       "ingress.alb.yc.io/group-name"            = local.k8s_ingress_group
-      # "ingress.alb.yc.io/transport-security"    = "tls"
+      "ingress.alb.yc.io/transport-security"    = "tls"
     }
   }
 
@@ -484,14 +511,15 @@ resource "kubernetes_ingress_v1" "k8s_ingress" {
         path {
           backend {
             service {
-              name = "ci-argocd-server"
+              name = "argo-cd-np"
               port {
                 name = "https"
               }
             }
           }
 
-          path = "/"
+          path_type = "Prefix"
+          path      = "/"
         }
       }
     }
