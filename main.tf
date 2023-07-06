@@ -48,52 +48,52 @@
 #   member    = "serviceAccount:${yandex_iam_service_account.k8s_sa_node.id}"
 # }
 
-resource "yandex_vpc_gateway" "k8s_gateway_nat" {
-  name = "k8s-gateway-nat"
-  shared_egress_gateway {}
-}
+# resource "yandex_vpc_gateway" "k8s_gateway_nat" {
+#   name = "k8s-gateway-nat"
+#   shared_egress_gateway {}
+# }
 
 
-resource "yandex_vpc_route_table" "k8s_rt_nat" {
-  name       = "k8s-rt-nat"
-  network_id = local.network_id
+# resource "yandex_vpc_route_table" "k8s_rt_nat" {
+#   name       = "k8s-rt-nat"
+#   network_id = local.network_id
 
-  static_route {
-    destination_prefix = "0.0.0.0/0"
-    gateway_id         = yandex_vpc_gateway.k8s_gateway_nat.id
-  }
-}
+#   static_route {
+#     destination_prefix = "0.0.0.0/0"
+#     gateway_id         = yandex_vpc_gateway.k8s_gateway_nat.id
+#   }
+# }
 
-resource "yandex_vpc_subnet" "k8s_subnet" {
-  name           = "k8s-subnet"
-  v4_cidr_blocks = ["10.16.0.0/16"]
-  # v6_cidr_blocks = ["..."]
-  zone           = "ru-central1-a"
-  network_id     = local.network_id
-  route_table_id = yandex_vpc_route_table.k8s_rt_nat.id
-}
+# resource "yandex_vpc_subnet" "k8s_subnet" {
+#   name           = "k8s-subnet"
+#   v4_cidr_blocks = ["10.16.0.0/16"]
+#   # v6_cidr_blocks = ["..."]
+#   zone           = "ru-central1-a"
+#   network_id     = local.network_id
+#   route_table_id = yandex_vpc_route_table.k8s_rt_nat.id
+# }
 
-module "k8s_sg" {
-  source = "./module/security-group"
+# module "k8s_sg" {
+#   source = "./module/security-group"
 
-  name       = "k8s-sg"
-  network_id = local.network_id
-  security_rules = {
-    ingress = [
-      { target = "loadbalancer_healthchecks", from_port = 0, to_port = 65535, proto = "TCP" },
-      { target = "self_security_group", from_port = 0, to_port = 65535, proto = "ANY" },
-      { cidr_v4 = yandex_vpc_subnet.k8s_subnet.v4_cidr_blocks, from_port = 0, to_port = 65535, proto = "ANY" },
-      { cidr_v4 = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"], from_port = 0, to_port = 65535, proto = "ICMP" },
-      { cidr_v4 = local.allowed_ip, from_port = 30000, to_port = 32767, proto = "TCP" },
-      { cidr_v4 = local.allowed_ip, port = 22, proto = "TCP" },
-      { cidr_v4 = local.allowed_ip, port = 443, proto = "TCP" },
-      { cidr_v4 = local.allowed_ip, port = 6443, proto = "TCP" },
-    ]
-    egress = [
-      { cidr_v4 = ["0.0.0.0/0"], from_port = 0, to_port = 65535, proto = "ANY" },
-    ]
-  }
-}
+#   name       = "k8s-sg"
+#   network_id = local.network_id
+#   security_rules = {
+#     ingress = [
+#       { target = "loadbalancer_healthchecks", from_port = 0, to_port = 65535, proto = "TCP" },
+#       { target = "self_security_group", from_port = 0, to_port = 65535, proto = "ANY" },
+#       { cidr_v4 = yandex_vpc_subnet.k8s_subnet.v4_cidr_blocks, from_port = 0, to_port = 65535, proto = "ANY" },
+#       { cidr_v4 = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"], from_port = 0, to_port = 65535, proto = "ICMP" },
+#       { cidr_v4 = local.allowed_ip, from_port = 30000, to_port = 32767, proto = "TCP" },
+#       { cidr_v4 = local.allowed_ip, port = 22, proto = "TCP" },
+#       { cidr_v4 = local.allowed_ip, port = 443, proto = "TCP" },
+#       { cidr_v4 = local.allowed_ip, port = 6443, proto = "TCP" },
+#     ]
+#     egress = [
+#       { cidr_v4 = ["0.0.0.0/0"], from_port = 0, to_port = 65535, proto = "ANY" },
+#     ]
+#   }
+# }
 
 # resource "yandex_kubernetes_cluster" "k8s_cluster" {
 #   name = "k8s-cluster"
