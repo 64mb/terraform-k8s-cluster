@@ -48,30 +48,30 @@
 #   member    = "serviceAccount:${yandex_iam_service_account.k8s_sa_node.id}"
 # }
 
-# resource "yandex_vpc_gateway" "k8s_gateway_nat" {
-#   name = "k8s-gateway-nat"
-#   shared_egress_gateway {}
-# }
+resource "yandex_vpc_gateway" "k8s_gateway_nat" {
+  name = "k8s-gateway-nat"
+  shared_egress_gateway {}
+}
 
 
-# resource "yandex_vpc_route_table" "k8s_rt_nat" {
-#   name       = "k8s-rt-nat"
-#   network_id = local.network_id
+resource "yandex_vpc_route_table" "k8s_rt_nat" {
+  name       = "k8s-rt-nat"
+  network_id = local.network_id
 
-#   static_route {
-#     destination_prefix = "0.0.0.0/0"
-#     gateway_id         = yandex_vpc_gateway.k8s_gateway_nat.id
-#   }
-# }
+  static_route {
+    destination_prefix = "0.0.0.0/0"
+    gateway_id         = yandex_vpc_gateway.k8s_gateway_nat.id
+  }
+}
 
-# resource "yandex_vpc_subnet" "k8s_subnet" {
-#   name           = "k8s-subnet"
-#   v4_cidr_blocks = ["10.16.0.0/16"]
-#   # v6_cidr_blocks = ["..."]
-#   zone           = "ru-central1-a"
-#   network_id     = local.network_id
-#   route_table_id = yandex_vpc_route_table.k8s_rt_nat.id
-# }
+resource "yandex_vpc_subnet" "k8s_subnet" {
+  name           = "k8s-subnet"
+  v4_cidr_blocks = ["10.16.0.0/16"]
+  # v6_cidr_blocks = ["..."]
+  zone           = "ru-central1-a"
+  network_id     = local.network_id
+  route_table_id = yandex_vpc_route_table.k8s_rt_nat.id
+}
 
 module "k8s_sg" {
   source = "./module/security-group"
